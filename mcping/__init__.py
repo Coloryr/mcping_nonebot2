@@ -10,8 +10,11 @@ from nonebot.adapters.qq import GroupAtMessageCreateEvent, Bot, MessageSegment
 
 __plugin_meta__ = PluginMetadata(
     name="mcping-nonebot2",
-    description="",
-    usage=""
+    description="mcping with nonebot2",
+    usage="",
+    supported_adapters=["~qq"],
+    type="application",
+    homepage="https://github.com/Coloryr/mcping_nonebot2"
 )
 
 msg_im: int = 1

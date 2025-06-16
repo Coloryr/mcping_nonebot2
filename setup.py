@@ -3,7 +3,7 @@ with open("README.md", "r", encoding='utf-8') as fh:
     long_description = fh.read()
 setuptools.setup(
     name="mcping_nonebot2",
-    version="1.0", 
+    version="1.0.3", 
     author="coloryr",  
     author_email="402067010@qq.com",
     description="mcping with nonebot2", 
@@ -17,7 +17,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        'nonebot2',
+        'nonebot2', "nonebot-adapter-qq"
     ],
     python_requires='>=3'
 )
