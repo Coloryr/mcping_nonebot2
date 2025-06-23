@@ -3,7 +3,7 @@ with open("README.md", "r", encoding='utf-8') as fh:
     long_description = fh.read()
 setuptools.setup(
     name="mcping_nonebot2",
-    version="1.0.3", 
+    version="1.0.4", 
     author="coloryr",  
     author_email="402067010@qq.com",
     description="mcping with nonebot2", 

@@ -6,15 +6,12 @@ from typing import Optional, Dict
 from nonebot.plugin import PluginMetadata
 from nonebot import get_driver, logger
 from nonebot import on_message, get_bot
-from nonebot.adapters.qq import GroupAtMessageCreateEvent, Bot, MessageSegment
+from nonebot.adapters.qq import GroupAtMessageCreateEvent, Bot, MessageSegment, C2CMessageCreateEvent
 
 __plugin_meta__ = PluginMetadata(
     name="mcping-nonebot2",
-    description="mcping with nonebot2",
-    usage="",
-    supported_adapters=["~qq"],
-    type="application",
-    homepage="https://github.com/Coloryr/mcping_nonebot2"
+    description="",
+    usage=""
 )
 
 msg_im: int = 1
@@ -125,6 +122,9 @@ class NettyProtocolServer:
             message = json.loads(data.decode('utf-8'))
             logger.debug(f"收到来自 {client_addr} 的JSON消息: {message}")
 
+            if "ping" in message:
+                return b"{\"pong\":null}"
+
             bot = get_bot()
             if isinstance(bot, Bot):
                 msg: MessageSegment
@@ -137,7 +137,10 @@ class NettyProtocolServer:
                 else:
                     msg = MessageSegment.text(message['text'])
                 global msg_im
-                await bot.send_to_group(message['group_id'], msg, message['msg_id'], msg_im, message['event_id'])
+                if "user_id" in message:
+                    await bot.send_to_c2c(message['user_id'], msg, message['msg_id'], msg_im, message['event_id'])
+                else:
+                    await bot.send_to_group(message['group_id'], msg, message['msg_id'], msg_im, message['event_id'])
                 msg_im+=1
         
         except json.JSONDecodeError:
@@ -227,3 +230,17 @@ async def handle_qq(bot: Bot, ev: GroupAtMessageCreateEvent):
 
     await netty_server.broadcast_message(data)
 
+@qq_matcher.handle()
+async def handle_qq(bot: Bot, ev: C2CMessageCreateEvent):
+    user_id = ev.get_user_id()
+    messages = ev.get_message()
+    event_id = ev.event_id
+    msg_id = ev.id
+
+    assert isinstance(bot, Bot), '仅适用于 QQ 机器人'
+
+    data = json.dumps({
+        'is_user': True, 'user_id': user_id, 'messages': messages.extract_plain_text(), 'event_id': event_id, 'msg_id': msg_id
+    }, default=str)
+
+    await netty_server.broadcast_message(data)
