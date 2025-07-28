@@ -8,12 +8,15 @@ from nonebot import get_driver, logger
 from nonebot import on_message, get_bot
 from nonebot.adapters.qq import GroupAtMessageCreateEvent, Bot, MessageSegment, C2CMessageCreateEvent
 
+from .config import Config
+
 __plugin_meta__ = PluginMetadata(
-    name="mcping-nonebot2",
+    name="nonebot_plugin_mcping",
     description="mcping with nonebot2",
     usage="",
     supported_adapters=["~qq"],
     type="application",
+    config=Config,
     homepage="https://github.com/Coloryr/mcping_nonebot2"
 )
 
