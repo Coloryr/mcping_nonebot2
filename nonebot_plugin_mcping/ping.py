@@ -14,6 +14,7 @@ import random
 import socket
 import struct
 import time
+import unicodedata
 from dataclasses import dataclass, field
 from typing import Any, List, Optional, Tuple
 
@@ -220,7 +221,8 @@ def parse_chat(value: Any) -> Chat:
 def split_address(address: str) -> Tuple[str, Optional[int]]:
     """拆分 host / host:port / [::1]:port。"""
 
-    address = address.strip()
+    # 兼容中文输入法打出的全角冒号/数字，例如 localhost：10002
+    address = unicodedata.normalize("NFKC", address).strip()
     if not address:
         return "", None
     if address.startswith("["):
@@ -555,11 +557,14 @@ async def query(
     if port is not None and not (1 <= port <= 65535):
         return None
 
+    last_error: Optional[Exception] = None
+
     java_port = port if port is not None else DEFAULT_JAVA_PORT
     try:
         return await _query_java(host, host, java_port, timeout)
     except Exception as exc:
-        logger.debug(f"mcping: Java 查询 {host}:{java_port} 失败: {exc!r}")
+        last_error = exc
+        logger.info(f"mcping: Java 查询 {host}:{java_port} 失败: {exc!r}")
 
     # 只有没显式端口时才查 SRV
     if port is None and not _is_ip(host):
@@ -573,7 +578,8 @@ async def query(
             try:
                 return await _query_java(host, target, srv_port, timeout)
             except Exception as exc:
-                logger.debug(
+                last_error = exc
+                logger.info(
                     f"mcping: Java(SRV) 查询 {target}:{srv_port} 失败: {exc!r}"
                 )
 
@@ -584,6 +590,8 @@ async def query(
     try:
         return await _query_bedrock(host, bedrock_port, timeout)
     except Exception as exc:
-        logger.debug(f"mcping: Bedrock 查询 {host}:{bedrock_port} 失败: {exc!r}")
+        last_error = exc
+        logger.info(f"mcping: Bedrock 查询 {host}:{bedrock_port} 失败: {exc!r}")
 
+    logger.warning(f"mcping: 无法获取 {host} 的服务器状态，最后错误: {last_error!r}")
     return None

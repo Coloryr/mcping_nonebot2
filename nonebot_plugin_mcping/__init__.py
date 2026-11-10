@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import asyncio
 import time
+import unicodedata
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -64,7 +65,7 @@ except ImportError:  # pragma: no cover - 没装 onebot 适配器时
     OneBot11Bot = None  # type: ignore[assignment]
     OneBot11MessageSegment = None  # type: ignore[assignment]
 
-USAGE = "输入/mc [IP] [端口](可选) 来生成服务器Motd图片，支持JAVA版和BE版"
+USAGE = "输入/mc [IP] [端口] 来生成服务器Motd图片；只填端口时查询本机。支持JAVA版和BE版"
 
 config = get_config()
 driver = get_driver()
@@ -149,7 +150,8 @@ def _image_message(bot: Bot, path: Path):
 
 
 async def _handle_mc(bot: Bot, event: Event, args: Message) -> None:
-    parts = args.extract_plain_text().strip().split()
+    parts = unicodedata.normalize("NFKC", args.extract_plain_text()).strip().split()
+    logger.info(f"mcping: 收到查询: {parts!r}")
 
     if len(parts) > 2:
         await _send_message(bot, event, USAGE)
@@ -163,28 +165,35 @@ async def _handle_mc(bot: Bot, event: Event, args: Message) -> None:
             return
         address = default_ip
         display = default_ip
-    else:
-        address = parts[0]
-        if len(parts) == 2:
-            raw_port = parts[1]
-            display = f"{address}:{raw_port}"
-            try:
-                port = int(raw_port)
-            except ValueError:
-                await _send_message(bot, event, f"获取[{display}]错误")
-                return
+    elif len(parts) == 1:
+        token = parts[0]
+        if token.isdigit():
+            port = int(token)
+            address = "127.0.0.1"
+            display = f"127.0.0.1:{token}"
             if not 1 <= port <= 65535:
                 await _send_message(bot, event, f"获取[{display}]错误")
                 return
         else:
-            display = address
+            address = token
+            display = token
+    else:
+        address = parts[0]
+        raw_port = parts[1]
+        display = f"{address}:{raw_port}"
+        try:
+            port = int(raw_port)
+        except ValueError:
+            await _send_message(bot, event, f"获取[{display}]错误")
+            return
+        if not 1 <= port <= 65535:
+            await _send_message(bot, event, f"获取[{display}]错误")
+            return
 
     user_key = event.get_user_id() or event.get_session_id()
     if cooldown.remaining(user_key) > 0:
         await _send_message(bot, event, "查询过于频繁")
         return
-    cooldown.hit(user_key)
-
     await _send_message(bot, event, f"正在获取[{display}]")
 
     status = await query(
@@ -193,8 +202,11 @@ async def _handle_mc(bot: Bot, event: Event, args: Message) -> None:
         timeout=max(0.5, float(config.mcping_request_timeout)),
     )
     if status is None:
+        logger.warning(f"mcping: 查询 {display} 失败（Java/Bedrock 均不可达）")
         await _send_message(bot, event, f"获取[{display}]错误")
         return
+
+    cooldown.hit(user_key)
 
     try:
         image_path = await asyncio.to_thread(renderer.render, status)
