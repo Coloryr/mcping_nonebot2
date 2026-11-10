@@ -5,6 +5,9 @@
 从 2.0.0 开始，原 C# 版 McPing 后端的 ping、MOTD 绘图和 `/mc` 指令处理已经
 合并进本插件：正常部署只需要运行 NoneBot，不再需要单独启动 `McPing.exe`。
 
+> QQ 群“全量消息模式”（不 @ 机器人也能收到消息）需要
+> `nonebot-adapter-qq>=1.7.0`，并在 QQ 开放平台开启群消息全量模式。
+
 ## 功能
 
 - QQ / OneBot V11 中直接使用 `/mc` 查询 Minecraft 服务器

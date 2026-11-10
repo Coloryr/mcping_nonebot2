@@ -17,8 +17,8 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        "nonebot2>=2.0.0",
-        "nonebot-adapter-qq>=1.0.0",
+        "nonebot2>=2.5.0",
+        "nonebot-adapter-qq>=1.7.0",
         "pillow>=10.0",
         "dnspython>=2.0",
     ],
